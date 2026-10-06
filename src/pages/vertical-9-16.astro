@@ -44,7 +44,6 @@ const categoriesData = [
 ---
 
 <Layout>
-  <!-- NIENTE "relative z-10": il modale deve stare sopra header e footer -->
   <video-gallery class="block pt-32 pb-32 overflow-hidden">
     {categoriesData.map(category => (
       <div class="mb-14 category-row relative">
@@ -52,12 +51,12 @@ const categoriesData = [
           {category.title}
         </h2>
 
-        <div class="relative group px-10 md:px-14">
+        <div class="relative group md:px-14">
           <button class="left-arrow hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/70 hover:bg-black text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-xl">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
           </button>
 
-          <div class="carousel-track flex overflow-x-auto gap-5 pb-6 snap-x snap-mandatory hide-scrollbar">
+          <div class="carousel-track flex overflow-x-auto gap-5 pb-6 px-6 md:px-0 snap-x snap-mandatory hide-scrollbar">
             {category.videos.map((videoId) => (
               <div
                 class="video-thumb flex-none w-44 md:w-52 aspect-[9/16] bg-neutral-900 rounded-md overflow-hidden cursor-pointer snap-start shadow-xl transition-all duration-300 active:scale-95 hover:ring-2 hover:ring-white/50 relative group/thumb"
@@ -139,30 +138,57 @@ const categoriesData = [
 <script>
   class VideoGallery extends HTMLElement {
     onKeydown = null;
+    rafId = 0;
+    isModalOpen = false;
+    timers = [];
 
-    async connectedCallback() {
-      const thumbs = this.querySelectorAll('.video-thumb');
+    connectedCallback() {
       const modal = this.querySelector('#video-modal');
       const iframe = this.querySelector('#modal-iframe');
       const closeBtn = this.querySelector('#close-modal');
       const bgClose = this.querySelector('#modal-bg-close');
+      const tracks = Array.from(this.querySelectorAll('.carousel-track'));
 
-      // 1. Caricamento copertine
-      thumbs.forEach(async (thumb) => {
-        const id = thumb.getAttribute('data-vimeo-id');
+      // Mobile = schermo stretto oppure dispositivo touch
+      const useMarquee = window.matchMedia(
+        '(max-width: 767px), (hover: none) and (pointer: coarse)'
+      ).matches;
+
+      // 0. Su mobile triplichiamo le miniature per avere un loop continuo
+      if (useMarquee) {
+        tracks.forEach((track) => {
+          track.classList.remove('snap-x', 'snap-mandatory'); // lo snap bloccherebbe lo scorrimento automatico
+          const originals = Array.from(track.children);
+          for (let i = 0; i < 2; i++) {
+            originals.forEach((el) => track.appendChild(el.cloneNode(true)));
+          }
+        });
+      }
+
+      const thumbs = this.querySelectorAll('.video-thumb');
+
+      // 1. Copertine (una sola richiesta per ID, applicata anche ai duplicati)
+      const ids = [...new Set(Array.from(thumbs).map((t) => t.getAttribute('data-vimeo-id')))];
+      ids.forEach(async (id) => {
+        if (!id) return;
         const apiId = id.includes('?h=') ? id.replace('?h=', '/') : id;
         try {
           const response = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${apiId}`);
           const data = await response.json();
+          if (!data.thumbnail_url) return;
 
-          if (data.thumbnail_url) {
+          const url = data.thumbnail_url.replace(/_[0-9x]+/, '_1080x1920');
+          this.querySelectorAll('.video-thumb').forEach((t) => {
+            if (t.getAttribute('data-vimeo-id') !== id) return;
+            const inner = t.querySelector('.thumb-inner');
+            if (!inner || inner.querySelector('img')) return;
+
             const img = document.createElement('img');
-            img.src = data.thumbnail_url.replace(/_[0-9x]+/, '_1080x1920');
-            img.className = 'absolute inset-0 w-full h-full object-cover z-0 brightness-75 group-hover/thumb:brightness-100 group-hover/thumb:scale-105 transition-all duration-500';
-
-            const inner = thumb.querySelector('.thumb-inner');
-            if (inner) inner.insertBefore(img, inner.firstChild);
-          }
+            img.src = url;
+            img.className =
+              'absolute inset-0 w-full h-full object-cover z-0 brightness-75 group-hover/thumb:brightness-100 group-hover/thumb:scale-105 transition-all duration-500';
+            inner.insertBefore(img, inner.firstChild);
+          });
         } catch (error) {
           console.log('Copertina non trovata per:', id);
         }
@@ -178,6 +204,7 @@ const categoriesData = [
           modal.classList.remove('hidden');
           modal.classList.add('flex');
           document.body.style.overflow = 'hidden';
+          this.isModalOpen = true;
         };
 
         const closeModal = (e) => {
@@ -189,6 +216,7 @@ const categoriesData = [
           modal.classList.remove('flex');
           iframe.src = '';
           document.body.style.overflow = '';
+          this.isModalOpen = false;
         };
 
         thumbs.forEach((thumb) => {
@@ -207,9 +235,8 @@ const categoriesData = [
         document.addEventListener('keydown', this.onKeydown);
       }
 
-      // 3. Frecce carosello
-      const rows = this.querySelectorAll('.category-row');
-      rows.forEach((row) => {
+      // 3. Frecce carosello (desktop)
+      this.querySelectorAll('.category-row').forEach((row) => {
         const track = row.querySelector('.carousel-track');
         const leftBtn = row.querySelector('.left-arrow');
         const rightBtn = row.querySelector('.right-arrow');
@@ -220,10 +247,86 @@ const categoriesData = [
           rightBtn.addEventListener('click', () => track.scrollBy({ left: scrollAmount, behavior: 'smooth' }));
         }
       });
+
+      // 4. Scorrimento automatico su mobile (come le foto)
+      if (useMarquee) {
+        const speedPixelsPerSecond = 35;
+
+        const states = tracks.map((track, i) => ({
+          el: track,
+          n: track.children.length / 3,          // numero di video in un "set"
+          dir: i % 2 === 1 ? -1 : 1,             // righe alternate: destra / sinistra
+          paused: false,
+          exact: 0,
+          setWidth: 0
+        }));
+
+        let last = performance.now();
+        const tick = (now) => {
+          const dt = Math.min((now - last) / 1000, 0.1);
+          last = now;
+
+          states.forEach((s) => {
+            if (s.paused || this.isModalOpen || !s.setWidth) return;
+
+            s.exact += speedPixelsPerSecond * dt * s.dir;
+            if (s.exact >= s.setWidth * 2) s.exact -= s.setWidth;
+            else if (s.exact <= 0) s.exact += s.setWidth;
+
+            s.el.scrollLeft = Math.round(s.exact);
+          });
+
+          this.rafId = requestAnimationFrame(tick);
+        };
+
+        states.forEach((s) => {
+          const pause = () => {
+            s.paused = true;
+            clearTimeout(s.resumeTimer);
+          };
+          const resume = () => {
+            clearTimeout(s.resumeTimer);
+            s.resumeTimer = setTimeout(() => {
+              s.exact = s.el.scrollLeft;
+              s.paused = false;
+            }, 1500);
+            this.timers.push(s.resumeTimer);
+          };
+
+          s.el.addEventListener('touchstart', pause, { passive: true });
+          s.el.addEventListener('touchend', resume, { passive: true });
+          s.el.addEventListener('touchcancel', resume, { passive: true });
+
+          // Se l'utente scorre a mano fino ai bordi, rientra nel loop senza salti visibili
+          s.el.addEventListener('scroll', () => {
+            if (!s.paused || !s.setWidth) return;
+            if (s.el.scrollLeft >= s.setWidth * 2) s.el.scrollLeft -= s.setWidth;
+            else if (s.el.scrollLeft <= 0) s.el.scrollLeft += s.setWidth;
+          }, { passive: true });
+        });
+
+        // Avvio ritardato per lasciare al browser il tempo di calcolare le misure
+        const startTimer = setTimeout(() => {
+          states.forEach((s) => {
+            const kids = s.el.children;
+            if (kids.length > s.n) {
+              s.setWidth = kids[s.n].offsetLeft - kids[0].offsetLeft;
+              s.exact = s.setWidth;
+              s.el.scrollLeft = s.setWidth;
+            }
+          });
+          last = performance.now();
+          this.rafId = requestAnimationFrame(tick);
+        }, 300);
+        this.timers.push(startTimer);
+      }
     }
 
     disconnectedCallback() {
       if (this.onKeydown) document.removeEventListener('keydown', this.onKeydown);
+      cancelAnimationFrame(this.rafId);
+      this.timers.forEach((t) => clearTimeout(t));
+      this.timers = [];
       document.body.style.overflow = '';
     }
   }

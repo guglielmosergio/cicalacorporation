@@ -46,8 +46,8 @@ const videosWithData = await Promise.all(
 
 <Layout>
   <!-- NIENTE "relative z-10" qui: creerebbe un livello che tiene il modale sotto header e footer -->
-  <video-gallery class="block pt-32 pb-32 px-10 max-w-7xl mx-auto">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+  <video-gallery class="block pt-32 pb-32 px-5 md:px-10 max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-10">
       {videosWithData.map((video) => (
         <div
           class="video-thumb relative aspect-video bg-neutral-900 rounded-sm overflow-hidden cursor-pointer group shadow-lg"
