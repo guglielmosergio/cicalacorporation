@@ -1,17 +1,85 @@
 ---
+import Layout from '../layouts/Layout.astro';
 
+const base = "background=1&autoplay=1&loop=1&byline=0&title=0";
+const desktopSrc = `https://player.vimeo.com/video/788816344?${base}`;
+const mobileSrc = `https://player.vimeo.com/video/1233389078?h=e1222bab3a&${base}`;
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout>
+  <div
+    id="hero-container"
+    data-src-desktop={desktopSrc}
+    data-src-mobile={mobileSrc}
+    class="-z-10 w-screen h-screen flex justify-center items-center overflow-hidden bg-black"
+  ></div>
+</Layout>
+
+<script is:inline src="https://player.vimeo.com/api/player.js"></script>
+
+<script>
+  function setupHeroVideo() {
+    const container = document.getElementById('hero-container');
+
+    // Evita di inizializzare due volte
+    if (!container || container.dataset.initialized) return;
+    container.dataset.initialized = 'true';
+
+    const MAX_VOLUME = 0.4; // 40%
+    const mq = window.matchMedia('(max-width: 767px)'); // mobile = sotto 768px
+    let player = null;
+    let currentSrc = '';
+    let audioActivated = false;
+
+    const applyVolume = () => {
+      if (!player) return;
+      player.setVolume(MAX_VOLUME).catch((error) => {
+        console.warn('Impossibile attivare l\'audio.', error);
+      });
+    };
+
+    const loadVideo = () => {
+      const src = mq.matches
+        ? container.dataset.srcMobile
+        : container.dataset.srcDesktop;
+
+      if (src === currentSrc) return;
+      currentSrc = src;
+
+      if (player) {
+        player.destroy().catch(() => {});
+        player = null;
+      }
+      container.innerHTML = '';
+
+      const iframe = document.createElement('iframe');
+      iframe.src = src;
+      iframe.setAttribute('frameborder', '0');
+      iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture');
+      iframe.setAttribute('allowfullscreen', '');
+      iframe.className = 'w-full h-full pointer-events-none';
+      container.appendChild(iframe);
+
+      player = new window.Vimeo.Player(iframe);
+
+      // Se l'audio era già stato attivato (es. rotazione schermo), lo riattiva
+      if (audioActivated) applyVolume();
+    };
+
+    // L'audio parte SOLO al primo click, al 40%
+    window.addEventListener(
+      'click',
+      () => {
+        audioActivated = true;
+        applyVolume();
+      },
+      { once: true }
+    );
+
+    loadVideo();
+    mq.addEventListener('change', loadVideo);
+  }
+
+  setupHeroVideo();
+  document.addEventListener('astro:page-load', setupHeroVideo);
+</script>

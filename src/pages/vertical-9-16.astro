@@ -1,0 +1,234 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const categoriesData = [
+  {
+    title: "COMMERCIAL & LIFESTYLE",
+    videos: [
+      "1205216635?h=6e0bb1b631", "1205216506?h=72de0430e4", "1205216584?h=fd45f301d6",
+      "1205216745?h=0d5f6be3fe", "1205206884?h=c52bb32b41", "1205206932?h=a646f60579",
+      "1205207270?h=60e6b0ce95", "1205207114?h=5db0968888", "1205215320?h=674be5bc46",
+      "1228494329?h=c17f5f48db", "1228499335?h=d1a9e6f6e0", "1228505963?h=4b376afa56", "1228498048?h=32047aff07"
+    ]
+  },
+  {
+    title: "FOOD & BEVERAGE",
+    videos: [
+      "1205208131?h=e6aab31d87", "1205207769?h=7b030337ec", "1205207853?h=12ca5e685e",
+      "1205208411?h=e65c5e05f0", "1205212787?h=194e8bbb96", "1205212976?h=f0e316ba95",
+      "1205213977?h=57755c38e8", "1205214237?h=33ad94a3c0", "1204850365?h=2d26e2f593",
+      "1205206379?h=733fae9d3f", "1205206196?h=23dd82ccdd", "1205211558?h=ea2d2a7fe5",
+      "1205211528?h=d510895643"
+    ]
+  },
+  {
+    title: "MUSIC & ARTS",
+    videos: [
+      "1205210249?h=5475305cc9", "1205237899?h=9b773eaa4f", "1205211027?h=da5d926f44",
+      "1205239161?h=e4cb517f0a", "1205210751?h=ff406b3efd", "1205210935?h=8b956d67a7",
+      "1205210994?h=3be6fe2297", "1205239716?h=23790cbc1a", "1228493670?h=cd2b6f3f4f",
+      "1228491743?h=fdf757e9b3", "1228490626?h=0929faf288", "1228490256?h=868cd71a31",
+      "1228491256?h=0aefa1d476"
+    ]
+  },
+  {
+    title: "NATURE & SOPHISTICATION",
+    videos: [
+      "1205215810?h=29e9f8598a", "1205215671?h=fc55fd04d5", "1205215759?h=71cd4e0384",
+      "1205215714?h=eb0c3dabcd", "1205215228?h=579d8a23ae", "1205215188?h=2018de8902",
+      "1228507874?h=b374001af1", "1228507254?h=df56c65bc3", "1228507004?h=d6d30721ea",
+      "1228507459?h=cc1105d5b1", "1228506545?h=1153156ed8", "1228508000?h=b2fbfefded"
+    ]
+  }
+];
+---
+
+<Layout>
+  <!-- NIENTE "relative z-10": il modale deve stare sopra header e footer -->
+  <video-gallery class="block pt-32 pb-32 overflow-hidden">
+    {categoriesData.map(category => (
+      <div class="mb-14 category-row relative">
+        <h2 class="px-10 md:px-14 text-white font-['Helvetica'] font-bold text-xl md:text-2xl tracking-wide uppercase mb-6 drop-shadow-md">
+          {category.title}
+        </h2>
+
+        <div class="relative group px-10 md:px-14">
+          <button class="left-arrow hidden md:flex absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/70 hover:bg-black text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-xl">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+          </button>
+
+          <div class="carousel-track flex overflow-x-auto gap-5 pb-6 snap-x snap-mandatory hide-scrollbar">
+            {category.videos.map((videoId) => (
+              <div
+                class="video-thumb flex-none w-44 md:w-52 aspect-[9/16] bg-neutral-900 rounded-md overflow-hidden cursor-pointer snap-start shadow-xl transition-all duration-300 active:scale-95 hover:ring-2 hover:ring-white/50 relative group/thumb"
+                data-vimeo-id={videoId}
+              >
+                <div class="thumb-inner w-full h-full flex items-center justify-center relative">
+                  {/* Le immagini verranno iniettate qui via JS */}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button class="right-arrow hidden md:flex absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/70 hover:bg-black text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-xl">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+      </div>
+    ))}
+
+    <!-- MODALE -->
+    <div id="video-modal" class="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-md hidden w-screen h-[100dvh] overflow-hidden justify-center items-center">
+
+      <!-- Sfondo cliccabile per chiudere -->
+      <div id="modal-bg-close" class="absolute inset-0 z-[10000] cursor-pointer"></div>
+
+      <!-- Cornice video 9:16 (le dimensioni sono nello <style> sotto) -->
+      <div class="vertical-frame relative z-[10001] flex justify-center items-center">
+        <iframe
+          id="modal-iframe"
+          src=""
+          class="w-full h-full rounded-md shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-black"
+          frameborder="0"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowfullscreen
+        ></iframe>
+
+        <!-- CLOSE: mobile = centrato sopra il video / desktop = a destra del video -->
+        <button
+          id="close-modal"
+          type="button"
+          aria-label="Chiudi video"
+          class="absolute z-[10002] left-1/2 -translate-x-1/2 bottom-full mb-2
+                 md:left-full md:translate-x-0 md:bottom-auto md:top-0 md:mb-0 md:ml-6
+                 min-h-[44px] px-5 inline-flex items-center justify-center rounded-full
+                 bg-black/60 backdrop-blur-sm border border-white/20
+                 text-white font-['Helvetica'] font-bold text-xs uppercase tracking-wider leading-none
+                 cursor-pointer whitespace-nowrap transition-colors duration-200
+                 hover:bg-white hover:text-black active:scale-95"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </video-gallery>
+</Layout>
+
+<style>
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Mobile: lascia 4rem sopra (per CLOSE) e 4rem sotto */
+  .vertical-frame {
+    aspect-ratio: 9 / 16;
+    width: min(92vw, calc((100dvh - 8rem) * 9 / 16));
+  }
+  /* Desktop: video più grande, CLOSE sta di lato */
+  @media (min-width: 768px) {
+    .vertical-frame {
+      width: min(70vw, calc((100dvh - 4rem) * 9 / 16));
+    }
+  }
+</style>
+
+<script>
+  class VideoGallery extends HTMLElement {
+    onKeydown = null;
+
+    async connectedCallback() {
+      const thumbs = this.querySelectorAll('.video-thumb');
+      const modal = this.querySelector('#video-modal');
+      const iframe = this.querySelector('#modal-iframe');
+      const closeBtn = this.querySelector('#close-modal');
+      const bgClose = this.querySelector('#modal-bg-close');
+
+      // 1. Caricamento copertine
+      thumbs.forEach(async (thumb) => {
+        const id = thumb.getAttribute('data-vimeo-id');
+        const apiId = id.includes('?h=') ? id.replace('?h=', '/') : id;
+        try {
+          const response = await fetch(`https://vimeo.com/api/oembed.json?url=https://vimeo.com/${apiId}`);
+          const data = await response.json();
+
+          if (data.thumbnail_url) {
+            const img = document.createElement('img');
+            img.src = data.thumbnail_url.replace(/_[0-9x]+/, '_1080x1920');
+            img.className = 'absolute inset-0 w-full h-full object-cover z-0 brightness-75 group-hover/thumb:brightness-100 group-hover/thumb:scale-105 transition-all duration-500';
+
+            const inner = thumb.querySelector('.thumb-inner');
+            if (inner) inner.insertBefore(img, inner.firstChild);
+          }
+        } catch (error) {
+          console.log('Copertina non trovata per:', id);
+        }
+      });
+
+      // 2. Modale
+      if (modal && iframe && closeBtn && bgClose) {
+        const openModal = (id) => {
+          const separator = id.includes('?') ? '&' : '?';
+          iframe.src =
+            'https://player.vimeo.com/video/' + id + separator +
+            'autoplay=1&playsinline=1&color=ffffff&title=0&byline=0&portrait=0&transparent=0';
+          modal.classList.remove('hidden');
+          modal.classList.add('flex');
+          document.body.style.overflow = 'hidden';
+        };
+
+        const closeModal = (e) => {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+          iframe.src = '';
+          document.body.style.overflow = '';
+        };
+
+        thumbs.forEach((thumb) => {
+          thumb.addEventListener('click', () => {
+            const id = thumb.getAttribute('data-vimeo-id');
+            if (id) openModal(id);
+          });
+        });
+
+        closeBtn.addEventListener('click', closeModal);
+        bgClose.addEventListener('click', closeModal);
+
+        this.onKeydown = (e) => {
+          if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(e);
+        };
+        document.addEventListener('keydown', this.onKeydown);
+      }
+
+      // 3. Frecce carosello
+      const rows = this.querySelectorAll('.category-row');
+      rows.forEach((row) => {
+        const track = row.querySelector('.carousel-track');
+        const leftBtn = row.querySelector('.left-arrow');
+        const rightBtn = row.querySelector('.right-arrow');
+
+        if (track && leftBtn && rightBtn) {
+          const scrollAmount = 800;
+          leftBtn.addEventListener('click', () => track.scrollBy({ left: -scrollAmount, behavior: 'smooth' }));
+          rightBtn.addEventListener('click', () => track.scrollBy({ left: scrollAmount, behavior: 'smooth' }));
+        }
+      });
+    }
+
+    disconnectedCallback() {
+      if (this.onKeydown) document.removeEventListener('keydown', this.onKeydown);
+      document.body.style.overflow = '';
+    }
+  }
+
+  if (!customElements.get('video-gallery')) {
+    customElements.define('video-gallery', VideoGallery);
+  }
+</script>

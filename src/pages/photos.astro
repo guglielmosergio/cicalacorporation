@@ -1,0 +1,293 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+// I 3 binari orizzontali perfettamente bilanciati
+const row1 = [
+  "/Oil refill.jpg",
+  "/Still life.jpg",
+  "/Sweatshirt.jpg",
+  "/T-Roc.JPG",
+  "/Portrait.JPG",
+  "/BW portrait.jpg",
+  "/Business man.JPG"
+];
+
+const row2 = [
+  "/Haircut.JPG",
+  "/School.jpg",
+  "/Montreux.jpg",
+  "/Swimming pool.jpg",
+  "/Sala dei Notari.jpg",
+  "/Launch.jpg",
+  "/Black and white.JPG"
+];
+
+const row3 = [
+  "/Group.JPG",
+  "/Pizza.JPG",
+  "/Pizzeria.JPG",
+  "/Truffles.jpg",
+  "/Burger.jpg",
+  "/Wrap.jpg"
+];
+---
+
+<Layout>
+  <!-- NIENTE "relative z-10": il lightbox deve stare sopra header e footer -->
+  <div class="block pt-32 pb-16 w-full overflow-hidden">
+
+    <div class="flex flex-col gap-6">
+      {[row1, row2, row3].map((row, rowIndex) => (
+        <div
+          class="flex overflow-x-auto gap-6 px-6 md:px-14 hide-scrollbar cursor-grab active:cursor-grabbing scroll-container select-none"
+          data-row={rowIndex}
+        >
+          {/* Triplichiamo l'array per garantire un'area di loop infinita e continua */}
+          {[...row, ...row, ...row].map((src) => (
+            <div class="photo-item flex-none h-[25vh] md:h-[30vh] aspect-auto bg-neutral-900 rounded-md overflow-hidden shadow-xl transition-all duration-300 hover:ring-2 hover:ring-white/50 select-none" data-src={src}>
+              <img src={src} alt="Photo Gallery" class="h-full w-auto block pointer-events-none select-none" loading="lazy" />
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+
+    <!-- LIGHTBOX -->
+    <div id="photo-modal" class="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-md hidden w-screen h-[100dvh] overflow-hidden select-none justify-center items-center">
+
+      <!-- Sfondo cliccabile per chiudere -->
+      <div id="photo-bg-close" class="absolute inset-0 z-[10000] cursor-pointer"></div>
+
+      <!-- Foto: occupa tutto lo spazio disponibile, lasciando libera la fascia alta per CLOSE -->
+      <div class="relative z-[10001] w-full h-full flex justify-center items-center pointer-events-none px-4 pt-20 pb-6 md:px-10">
+        <img
+          id="modal-img-target"
+          src=""
+          alt="Fullscreen Photography"
+          class="pointer-events-auto max-w-full max-h-full object-contain rounded-md shadow-[0_0_60px_rgba(0,0,0,0.8)] bg-black/20 transition-opacity duration-300"
+        />
+      </div>
+
+      <!-- CLOSE: sempre in alto a destra, area di tocco >= 44px, rispetta la notch -->
+      <button
+        id="close-photo-modal"
+        type="button"
+        aria-label="Chiudi foto"
+        class="absolute z-[10002] top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] md:top-8 md:right-10
+               min-h-[44px] px-5 inline-flex items-center justify-center rounded-full
+               bg-black/60 backdrop-blur-sm border border-white/20
+               text-white font-['Helvetica'] font-bold text-xs uppercase tracking-wider leading-none
+               cursor-pointer whitespace-nowrap transition-colors duration-200
+               hover:bg-white hover:text-black active:scale-95"
+      >
+        Close
+      </button>
+    </div>
+
+  </div>
+</Layout>
+
+<style>
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+</style>
+
+<script>
+  function setupGallery() {
+    const items = Array.from(document.querySelectorAll('.photo-item'));
+    const modal = document.getElementById('photo-modal');
+    const modalImg = document.getElementById('modal-img-target');
+    const closeBtn = document.getElementById('close-photo-modal');
+    const bgClose = document.getElementById('photo-bg-close');
+    const scrollContainers = Array.from(document.querySelectorAll('.scroll-container'));
+
+    if (!modal || !modalImg) return;
+
+    // Evita di inizializzare due volte la stessa pagina
+    if (modal.dataset.init) return;
+    modal.dataset.init = 'true';
+
+    // ----- STATO DEL LIGHTBOX -----
+    let currentIndex = 0;
+    let isModalOpen = false;
+    let isDragging = false;
+
+    const showImage = (index) => {
+      if (index < 0) {
+        currentIndex = items.length - 1;
+      } else if (index >= items.length) {
+        currentIndex = 0;
+      } else {
+        currentIndex = index;
+      }
+      const src = items[currentIndex].getAttribute('data-src');
+      if (src) modalImg.setAttribute('src', src);
+    };
+
+    const openModal = (index) => {
+      currentIndex = index;
+      showImage(currentIndex);
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+      isModalOpen = true;
+    };
+
+    const closeModal = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      modalImg.setAttribute('src', '');
+      document.body.style.overflow = '';
+      isModalOpen = false;
+    };
+
+    // ----- MOTORE DI SCORRIMENTO UNIFICATO ED ULTRA-FLUIDO -----
+    const sliders = scrollContainers.map((slider, rowIndex) => {
+      const direction = rowIndex % 2 === 1 ? -1 : 1;
+      return {
+        el: slider,
+        direction: direction,
+        isDown: false,
+        isHovered: false,
+        startX: 0,
+        scrollLeftStart: 0,
+        exactScrollLeft: 0,
+        initialized: false
+      };
+    });
+
+    let lastTime = performance.now();
+    const speedPixelsPerSecond = 35;
+
+    function updateMarquee(currentTime) {
+      const deltaTime = (currentTime - lastTime) / 1000;
+      lastTime = currentTime;
+
+      sliders.forEach(state => {
+        if (state.isDown || state.isHovered || isModalOpen) return;
+
+        const slider = state.el;
+        const setWidth = slider.scrollWidth / 3;
+
+        if (setWidth <= 0) return;
+
+        if (!state.initialized) {
+          state.exactScrollLeft = setWidth;
+          slider.scrollLeft = setWidth;
+          state.initialized = true;
+          return;
+        }
+
+        state.exactScrollLeft += speedPixelsPerSecond * deltaTime * state.direction;
+
+        if (state.direction === 1 && state.exactScrollLeft >= setWidth * 2) {
+          state.exactScrollLeft -= setWidth;
+        } else if (state.direction === -1 && state.exactScrollLeft <= 0) {
+          state.exactScrollLeft += setWidth;
+        }
+
+        slider.scrollLeft = Math.round(state.exactScrollLeft);
+      });
+
+      requestAnimationFrame(updateMarquee);
+    }
+
+    setTimeout(() => {
+      sliders.forEach(state => {
+        const setWidth = state.el.scrollWidth / 3;
+        state.exactScrollLeft = setWidth;
+        state.el.scrollLeft = setWidth;
+        state.initialized = true;
+      });
+      lastTime = performance.now();
+      requestAnimationFrame(updateMarquee);
+    }, 200);
+
+    // ----- DRAG -----
+    sliders.forEach(state => {
+      const slider = state.el;
+
+      slider.addEventListener('scroll', () => {
+        if (state.isHovered || state.isDown) {
+          state.exactScrollLeft = slider.scrollLeft;
+        }
+      }, { passive: true });
+
+      slider.addEventListener('mouseenter', () => { state.isHovered = true; });
+      slider.addEventListener('mouseleave', () => { state.isHovered = false; state.isDown = false; });
+
+      slider.addEventListener('mousedown', (e) => {
+        state.isDown = true;
+        isDragging = false;
+        state.startX = e.pageX - slider.offsetLeft;
+        state.scrollLeftStart = slider.scrollLeft;
+        state.exactScrollLeft = slider.scrollLeft;
+      });
+
+      slider.addEventListener('mouseup', () => {
+        state.isDown = false;
+      });
+
+      slider.addEventListener('mousemove', (e) => {
+        if (!state.isDown) return;
+        e.preventDefault();
+        const x = e.pageX - slider.offsetLeft;
+        const walk = (x - state.startX) * 2;
+        if (Math.abs(walk) > 5) isDragging = true;
+        slider.scrollLeft = state.scrollLeftStart - walk;
+        state.exactScrollLeft = slider.scrollLeft;
+      });
+
+      slider.addEventListener('touchstart', () => { state.isHovered = true; }, { passive: true });
+      slider.addEventListener('touchend', () => { state.isHovered = false; state.exactScrollLeft = slider.scrollLeft; });
+    });
+
+    // Click sulle miniature
+    items.forEach((item, index) => {
+      item.addEventListener('click', (e) => {
+        if (isDragging) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        openModal(index);
+      });
+    });
+
+    // Chiusura e controlli
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (bgClose) bgClose.addEventListener('click', closeModal);
+
+    document.addEventListener('keydown', (e) => {
+      if (!isModalOpen) return;
+      if (e.key === 'Escape') closeModal();
+      if (e.key === 'ArrowRight') showImage(currentIndex + 1);
+      if (e.key === 'ArrowLeft') showImage(currentIndex - 1);
+    });
+
+    // Swipe su mobile per cambiare foto
+    let touchStartX = 0;
+    let touchEndX = 0;
+    modal.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    modal.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      const swipeThreshold = 50;
+      if (touchEndX < touchStartX - swipeThreshold) showImage(currentIndex + 1);
+      if (touchEndX > touchStartX + swipeThreshold) showImage(currentIndex - 1);
+    }, { passive: true });
+  }
+
+  setupGallery();
+  document.addEventListener('astro:page-load', setupGallery);
+</script>
