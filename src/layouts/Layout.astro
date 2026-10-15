@@ -2,6 +2,7 @@
 // src/layouts/Layout.astro
 import '../styles/global.css'
 import discover from '../assets/Discover.png';
+
 const links = [
   { href: '/', label: 'Home' },
   { href: '/horizontal-16-9', label: 'Horizontal 16:9' },
@@ -10,6 +11,46 @@ const links = [
 ];
 
 const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+
+const taglines = [
+  {
+    code: 'en', label: 'English',
+    lines: ['Elevate your identity through premium visual storytelling,', 'contact me today to bring your project to life.'],
+    flag: '<svg viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg"><clipPath id="fl-s"><path d="M0,0 v30 h60 v-30 z"/></clipPath><clipPath id="fl-t"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><g clip-path="url(#fl-s)"><path d="M0,0 v30 h60 v-30 z" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#fl-t)" stroke="#C8102E" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/></g></svg>',
+  },
+  {
+    code: 'it', label: 'Italiano',
+    lines: ['Valorizza la tua identità attraverso un racconto visivo d\'eccellenza,', 'scrivimi oggi stesso e diamo vita al tuo progetto.'],
+    flag: '<svg viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="2" fill="#009246"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#CE2B37"/></svg>',
+  },
+  {
+    code: 'fr', label: 'Français',
+    lines: ['Sublimez votre identité à travers un récit visuel d\'exception,', 'contactez-moi dès aujourd\'hui pour donner vie à votre projet.'],
+    flag: '<svg viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="1" height="2" fill="#0055A4"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#EF4135"/></svg>',
+  },
+  {
+    code: 'es', label: 'Español',
+    lines: ['Eleva tu identidad a través de una narrativa visual de excelencia,', 'contacta conmigo hoy mismo para dar vida a tu proyecto.'],
+    flag: '<svg viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="2" fill="#AA151B"/><rect y="0.5" width="3" height="1" fill="#F1BF00"/></svg>',
+  },
+  {
+    code: 'ja', label: '日本語',
+    lines: ['卓越した映像表現で、あなたのアイデンティティを高める。', 'プロジェクトをカタチにするため、今すぐお問い合わせください。'],
+    flag: '<svg viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg"><rect width="3" height="2" fill="#fff"/><circle cx="1.5" cy="1" r="0.6" fill="#BC002D"/></svg>',
+  },
+];
+const gears = [
+  // English
+  'I am a videomaker with proprietary equipment: Sony FX3, FX30 and Sony GM lenses, Atomos Shogun Ultra, Nanlite lights, PolarPro filters and matte box, Cartoni tripod, DJI gimbal with Tilta ecosystem, Tilta shoulder rig, Zoom F6, Rode NTG3, NTK and Wireless Pro, color grading with Mac Studio, Eizo CG3100X, UltraStudio 4K Mini, DaVinci Resolve Studio, Logic Pro, Neumann NDH30, Auratone 5C, Focusrite ISA One, RME Babyface PRO-FS, Shure SM7DB, iZotope RX 12 Advanced, Final Draft. Available for productions worldwide.',
+  // Italiano
+  'Sono un videomaker con attrezzatura proprietaria Sony FX3, FX30 e lenti Sony GM, Atomos Shogun Ultra, Luci Nanlite, Polarpro Filtri e Mattebox, Cartoni Treppiede, DJI Gimbal con Ecosistema Tilta, Spallaccio Tilta, Zoom F6, Rode NTG3, NTK e Wireless Pro, Color Grading con Mac Studio, Eizo CG3100X, Ultrastudio 4K mini, Davinci Resolve Studio, Logic Pro, Neumann NDH30, Auratone 5C, Focusrite ISA One, RME Babyface PRO-FS, Shure SM7DB, iZotope RX 12 Advanced, Final Draft. Disponibile per produzioni in tutto il mondo.',
+  // Français
+  'Je suis vidéaste avec mon propre équipement Sony FX3, FX30 et objectifs Sony GM, Atomos Shogun Ultra, lumières Nanlite, filtres PolarPro et matte box, trépied Cartoni, stabilisateur DJI avec écosystème Tilta, harnais d\'épaule Tilta, Zoom F6, Rode NTG3, NTK et Wireless Pro, étalonnage avec Mac Studio, Eizo CG3100X, UltraStudio 4K Mini, DaVinci Resolve Studio, Logic Pro, Neumann NDH30, Auratone 5C, Focusrite ISA One, RME Babyface PRO-FS, Shure SM7DB, iZotope RX 12 Advanced, Final Draft. Disponible pour des productions dans le monde entier.',
+  // Español
+  'Soy videógrafo con equipo propio Sony FX3, FX30 y objetivos Sony GM, Atomos Shogun Ultra, luces Nanlite, filtros PolarPro y matte box, trípode Cartoni, gimbal DJI con ecosistema Tilta, arnés de hombro Tilta, Zoom F6, Rode NTG3, NTK y Wireless Pro, etalonaje con Mac Studio, Eizo CG3100X, UltraStudio 4K Mini, DaVinci Resolve Studio, Logic Pro, Neumann NDH30, Auratone 5C, Focusrite ISA One, RME Babyface PRO-FS, Shure SM7DB, iZotope RX 12 Advanced, Final Draft. Disponible para producciones en todo el mundo.',
+  // 日本語
+  'ビデオグラファーとして、Sony FX3・FX30とSony GMレンズ、Atomos Shogun Ultra、Nanliteライト、PolarProフィルターとマットボックス、Cartoniトライポッド、DJIジンバルとTiltaエコシステム、Tiltaショルダーリグ、Zoom F6、Rode NTG3・NTK・Wireless Pro、Mac Studio、Eizo CG3100X、UltraStudio 4K Miniでのカラーグレーディング、DaVinci Resolve Studio、Logic Pro、Neumann NDH30、Auratone 5C、Focusrite ISA One、RME Babyface PRO-FS、Shure SM7DB、iZotope RX 12 Advanced、Final Draftなど、機材を自社で所有しています。世界中の制作に対応可能です。',
+];
 ---
 
 <!DOCTYPE html>
@@ -98,7 +139,53 @@ const path = Astro.url.pathname.replace(/\/$/, '') || '/';
     </main>
 
     <!-- INIZIO FOOTER / FILIGRANA CONTATTI -->
-    <footer class="site-footer w-full bg-black pt-16 pb-12 flex flex-col items-center justify-center relative z-0 mt-auto font-['Helvetica']">
+        <footer
+      class:list={[
+        'site-footer w-full bg-black pb-12 flex flex-col items-center justify-center relative z-0 mt-auto font-[\'Helvetica\']',
+        path === '/' ? 'pt-6 md:pt-8' : 'pt-16',
+      ]}
+    >
+
+      <!-- Tagline multilingua (solo home) -->
+            <!-- Tagline multilingua (solo home) -->
+      {path === '/' && (
+        <div class="lang-tagline mb-10 flex flex-col items-center px-4 text-center w-full max-w-4xl" data-lang-tagline>
+          <div class="grid w-full">
+            {taglines.map((t, i) => (
+              <div
+                lang={t.code}
+                class:list={['tagline-text', { 'is-active': i === 0 }]}
+                aria-hidden={i === 0 ? 'false' : 'true'}
+                style="grid-area: 1 / 1;"
+              >
+                <p class="gear-text">
+                  {gears[i].split(/(?<=[,、.。])\s*/).filter(Boolean).map((seg) => (
+                    <Fragment><span class="seg">{seg}</span>{' '}</Fragment>
+                  ))}
+                </p>
+                <p class="tl-main">
+                  <span class="tl-line">{t.lines[0]}</span>{' '}
+                  <span class="tl-line">{t.lines[1]}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div class="flex items-center gap-3 mt-5">
+            {taglines.map((t, i) => (
+              <button
+                type="button"
+                class:list={['flag-btn', { 'is-active': i === 0 }]}
+                data-index={i}
+                aria-label={t.label}
+                title={t.label}
+              >
+                <Fragment set:html={t.flag} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <!-- Email -->
       <a
@@ -207,7 +294,7 @@ const path = Astro.url.pathname.replace(/\/$/, '') || '/';
 
       </div>
 
-            <!-- Scritta finale -->
+      <!-- Scritta finale -->
       <p class="text-neutral-500 text-[11px] md:text-xs tracking-[0.2em] uppercase text-center px-4">
         DO YOU LIKE THIS WEBSITE?<br class="md:hidden" /> CONTACT ME TO CREATE YOUR OWN.
       </p>
@@ -313,6 +400,65 @@ const path = Astro.url.pathname.replace(/\/$/, '') || '/';
       }
 
       body.menu-open { overflow: hidden; }
+
+      /* ---------- Tagline multilingua ---------- */
+      .tagline-text {
+        opacity: 0;
+        transform: translateY(6px);
+        pointer-events: none;
+        transition: opacity 0.7s ease, transform 0.7s ease;
+        text-transform: uppercase;
+        text-align: center;
+        hyphens: none;
+      }
+      .tagline-text.is-active {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+      }
+
+      /* Attrezzatura: più piccola e più tenue */
+      .gear-text {
+        margin: 0 0 1rem;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: clamp(0.5rem, 2.3vw, 0.8rem);
+        line-height: 1.8;
+        letter-spacing: 0.04em;
+      }
+      .seg { display: inline-block; max-width: 100%; }
+
+      /* Frase principale: più grande e più chiara */
+      .tl-main {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: clamp(0.4rem, 2vw, 1.1rem);
+        line-height: 1.7;
+        letter-spacing: 0;
+      }
+      .tl-line { display: block; }
+
+      @media (min-width: 768px) {
+        .gear-text { font-size: 0.8rem; }
+        .tl-main { font-size: 1.1rem; letter-spacing: 0.02em; }
+        .tl-line { display: block; }
+      }
+
+      .flag-btn {
+        width: 22px;
+        height: 15px;
+        border-radius: 3px;
+        overflow: hidden;
+        opacity: 0.4;
+        cursor: pointer;
+        transition: opacity 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+      }
+      .flag-btn svg { width: 100%; height: 100%; display: block; }
+      .flag-btn:hover { opacity: 0.8; }
+      .flag-btn.is-active {
+        opacity: 1;
+        transform: scale(1.15);
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+      }
     </style>
 
     <script is:inline>
@@ -338,6 +484,45 @@ const path = Astro.url.pathname.replace(/\/$/, '') || '/';
 
       initMobileMenu();
       document.addEventListener('astro:page-load', initMobileMenu);
+
+      function initTagline() {
+        const root = document.querySelector('[data-lang-tagline]');
+        if (!root || root.dataset.init) return;
+        root.dataset.init = 'true';
+
+        const texts = Array.from(root.querySelectorAll('.tagline-text'));
+        const flags = Array.from(root.querySelectorAll('.flag-btn'));
+        let current = 0;
+        let timer = null;
+
+        const show = (i) => {
+          current = i;
+          texts.forEach((t, k) => {
+            t.classList.toggle('is-active', k === i);
+            t.setAttribute('aria-hidden', String(k !== i));
+          });
+          flags.forEach((f, k) => f.classList.toggle('is-active', k === i));
+        };
+
+        const start = (delay = 6000) => {
+          clearInterval(timer);
+          timer = setInterval(() => show((current + 1) % texts.length), delay);
+        };
+
+        flags.forEach((f, i) => {
+          f.addEventListener('click', () => {
+            show(i);
+            clearInterval(timer);
+            // dopo 20 secondi riprende la rotazione automatica
+            timer = setTimeout(() => start(), 20000);
+          });
+        });
+
+        start();
+      }
+
+      initTagline();
+      document.addEventListener('astro:page-load', initTagline);
     </script>
 
   </body>

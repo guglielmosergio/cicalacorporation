@@ -149,10 +149,8 @@ const categoriesData = [
       const bgClose = this.querySelector('#modal-bg-close');
       const tracks = Array.from(this.querySelectorAll('.carousel-track'));
 
-      // Mobile = schermo stretto oppure dispositivo touch
-      const useMarquee = window.matchMedia(
-        '(max-width: 767px), (hover: none) and (pointer: coarse)'
-      ).matches;
+            // Scorrimento automatico attivo su mobile e desktop
+      const useMarquee = true;
 
       // 0. Su mobile triplichiamo le miniature per avere un loop continuo
       if (useMarquee) {
@@ -293,7 +291,19 @@ const categoriesData = [
             this.timers.push(s.resumeTimer);
           };
 
-          s.el.addEventListener('touchstart', pause, { passive: true });
+                  // Desktop: pausa quando il mouse è sulla riga (frecce incluse)
+          const row = s.el.closest('.category-row');
+          if (row) {
+            row.addEventListener('mouseenter', pause);
+            row.addEventListener('mouseleave', () => {
+              clearTimeout(s.resumeTimer);
+              s.resumeTimer = setTimeout(() => {
+                s.exact = s.el.scrollLeft;
+                s.paused = false;
+              }, 1000);
+              this.timers.push(s.resumeTimer);
+            });
+          }
           s.el.addEventListener('touchend', resume, { passive: true });
           s.el.addEventListener('touchcancel', resume, { passive: true });
 
