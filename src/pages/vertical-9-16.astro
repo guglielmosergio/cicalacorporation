@@ -139,36 +139,32 @@ const categoriesData = [
 </style>
 
 <script>
+  import { autoScroll } from '../scripts/autoscroll.js';
+
   class VideoGallery extends HTMLElement {
     onKeydown = null;
-    rafId = 0;
     isModalOpen = false;
-    timers = [];
+    stops = [];
 
     connectedCallback() {
       const modal = this.querySelector('#video-modal');
       const iframe = this.querySelector('#modal-iframe');
       const closeBtn = this.querySelector('#close-modal');
       const bgClose = this.querySelector('#modal-bg-close');
-      const tracks = Array.from(this.querySelectorAll('.carousel-track'));
 
-            // Scorrimento automatico attivo su mobile e desktop
-      const useMarquee = true;
-
-      // 0. Su mobile triplichiamo le miniature per avere un loop continuo
-      if (useMarquee) {
-        tracks.forEach((track) => {
-          track.classList.remove('snap-x', 'snap-mandatory'); // lo snap bloccherebbe lo scorrimento automatico
-          const originals = Array.from(track.children);
-          for (let i = 0; i < 2; i++) {
-            originals.forEach((el) => track.appendChild(el.cloneNode(true)));
-          }
+      // 0. Scorrimento automatico su tutte le righe (clona le miniature: va fatto prima di collegare i click)
+      this.querySelectorAll('.carousel-track').forEach((track, i) => {
+        const stop = autoScroll(track, {
+          speed: 35,
+          resumeMs: 1000,
+          isBlocked: () => this.isModalOpen,
         });
-      }
+        this.stops.push(stop);
+      });
 
       const thumbs = this.querySelectorAll('.video-thumb');
 
-      // 1. Copertine (una sola richiesta per ID, applicata anche ai duplicati)
+      // 1. Copertine (una richiesta per ID, applicata anche ai duplicati)
       const ids = [...new Set(Array.from(thumbs).map((t) => t.getAttribute('data-vimeo-id')))];
       ids.forEach(async (id) => {
         if (!id) return;
@@ -186,6 +182,7 @@ const categoriesData = [
 
             const img = document.createElement('img');
             img.src = url;
+            img.draggable = false;
             img.className =
               'absolute inset-0 w-full h-full object-cover z-0 brightness-75 group-hover/thumb:brightness-100 group-hover/thumb:scale-105 transition-all duration-500';
             inner.insertBefore(img, inner.firstChild);
@@ -248,98 +245,12 @@ const categoriesData = [
           rightBtn.addEventListener('click', () => track.scrollBy({ left: scrollAmount, behavior: 'smooth' }));
         }
       });
-
-      // 4. Scorrimento automatico su mobile (come le foto)
-      if (useMarquee) {
-        const speedPixelsPerSecond = 35;
-
-        const states = tracks.map((track, i) => ({
-          el: track,
-          n: track.children.length / 3,          // numero di video in un "set"
-          dir: i % 2 === 1 ? -1 : 1,             // righe alternate: destra / sinistra
-          paused: false,
-          exact: 0,
-          setWidth: 0
-        }));
-
-        let last = performance.now();
-        const tick = (now) => {
-          const dt = Math.min((now - last) / 1000, 0.1);
-          last = now;
-
-          states.forEach((s) => {
-            if (s.paused || this.isModalOpen || !s.setWidth) return;
-
-            s.exact += speedPixelsPerSecond * dt * s.dir;
-            if (s.exact >= s.setWidth * 2) s.exact -= s.setWidth;
-            else if (s.exact <= 0) s.exact += s.setWidth;
-
-            s.el.scrollLeft = Math.round(s.exact);
-          });
-
-          this.rafId = requestAnimationFrame(tick);
-        };
-
-        states.forEach((s) => {
-          const pause = () => {
-            s.paused = true;
-            clearTimeout(s.resumeTimer);
-          };
-          const resume = () => {
-            clearTimeout(s.resumeTimer);
-            s.resumeTimer = setTimeout(() => {
-              s.exact = s.el.scrollLeft;
-              s.paused = false;
-            }, 1500);
-            this.timers.push(s.resumeTimer);
-          };
-
-                  // Desktop: pausa quando il mouse è sulla riga (frecce incluse)
-          const row = s.el.closest('.category-row');
-          if (row) {
-            row.addEventListener('mouseenter', pause);
-            row.addEventListener('mouseleave', () => {
-              clearTimeout(s.resumeTimer);
-              s.resumeTimer = setTimeout(() => {
-                s.exact = s.el.scrollLeft;
-                s.paused = false;
-              }, 1000);
-              this.timers.push(s.resumeTimer);
-            });
-          }
-          s.el.addEventListener('touchend', resume, { passive: true });
-          s.el.addEventListener('touchcancel', resume, { passive: true });
-
-          // Se l'utente scorre a mano fino ai bordi, rientra nel loop senza salti visibili
-          s.el.addEventListener('scroll', () => {
-            if (!s.paused || !s.setWidth) return;
-            if (s.el.scrollLeft >= s.setWidth * 2) s.el.scrollLeft -= s.setWidth;
-            else if (s.el.scrollLeft <= 0) s.el.scrollLeft += s.setWidth;
-          }, { passive: true });
-        });
-
-        // Avvio ritardato per lasciare al browser il tempo di calcolare le misure
-        const startTimer = setTimeout(() => {
-          states.forEach((s) => {
-            const kids = s.el.children;
-            if (kids.length > s.n) {
-              s.setWidth = kids[s.n].offsetLeft - kids[0].offsetLeft;
-              s.exact = s.setWidth;
-              s.el.scrollLeft = s.setWidth;
-            }
-          });
-          last = performance.now();
-          this.rafId = requestAnimationFrame(tick);
-        }, 300);
-        this.timers.push(startTimer);
-      }
     }
 
     disconnectedCallback() {
       if (this.onKeydown) document.removeEventListener('keydown', this.onKeydown);
-      cancelAnimationFrame(this.rafId);
-      this.timers.forEach((t) => clearTimeout(t));
-      this.timers = [];
+      this.stops.forEach((s) => s());
+      this.stops = [];
       document.body.style.overflow = '';
     }
   }
